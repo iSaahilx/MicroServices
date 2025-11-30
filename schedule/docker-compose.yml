@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: schedule-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: schedules
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - schedule-network
+
+  backend:
+    build: ./backend
+    container_name: schedule-backend
+    environment:
+      PORT: 3002
+      DISABLE_AUTH: "false"
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: schedules
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: user_secret
+      USER_SERVICE_URL: http://host.docker.internal:3101
+    ports:
+      - "3002:3002"
+    depends_on:
+      - postgres
+    networks:
+      - schedule-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build: ./frontend
+    container_name: schedule-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:3002
+    ports:
+      - "3003:3000"
+    depends_on:
+      - backend
+    networks:
+      - schedule-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  pgdata:
+
+networks:
+  schedule-network:
+    driver: bridge
+
